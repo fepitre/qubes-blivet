@@ -31,6 +31,7 @@ License: LGPLv2+
 Source0: http://github.com/storaged-project/blivet/archive/%{realname}-%{realversion}.tar.gz
 Source1: http://github.com/storaged-project/blivet/archive/%{realname}-%{realversion}-tests.tar.gz
 Patch0: 0001-initial-PowerNV-class-support.patch
+Patch1: 0001-Double-recommended-LVM-thin-pool-metadata-space.patch
 
 # Versions of required components (done so we make sure the buildrequires
 # match the requires versions of things).

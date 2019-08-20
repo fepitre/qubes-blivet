@@ -1,0 +1,36 @@
+From 275a72817229ac5182eba6c6d1d1711e480dd106 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marek=20Marczykowski-G=C3=B3recki?=
+ <marmarek@invisiblethingslab.com>
+Date: Tue, 20 Aug 2019 04:17:42 +0200
+Subject: [PATCH] Double recommended LVM thin pool metadata space
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Organization: Invisible Things Lab
+Cc: Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>
+
+Running out of metadata space is fatal, and it happens with the default
+value on Qubes OS. Double the default to be safe.
+
+Signed-off-by: Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>
+---
+ blivet/devices/lvm.py | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/blivet/devices/lvm.py b/blivet/devices/lvm.py
+index 4347f483..c02cf045 100644
+--- a/blivet/devices/lvm.py
++++ b/blivet/devices/lvm.py
+@@ -1596,6 +1596,9 @@ class LVMThinPoolMixin(object):
+         self._metadata_size = Size(blockdev.lvm.get_thpool_meta_size(self._size,
+                                                                      self._chunk_size,
+                                                                      100))  # snapshots
++        # use twice as much as thin_metadata_size recommends, to accommodate
++        # large number of frequent snapshots
++        self._metadata_size *= 2
+         log.debug("Recommended metadata size: %s MiB", self._metadata_size.convert_to("MiB"))
+ 
+         self._metadata_size = self.vg.align(self._metadata_size, roundup=True)
+-- 
+2.20.1
+
