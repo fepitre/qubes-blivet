@@ -1,21 +1,36 @@
-%bcond_without python2
+%define is_rhel 0%{?rhel} != 0
+
+# python3 is not available on RHEL <=7
+%if %{is_rhel} && 0%{?rhel} <= 7
+# disable python3 by default
+%bcond_with python3
+%else
 %bcond_without python3
+%endif
+
+# python2 is not available on RHEL > 7 and not needed on Fedora > 28
+%if 0%{?rhel} > 7 || 0%{?fedora} > 28
+# disable python2 by default
+%bcond_with python2
+%else
+%bcond_without python2
+%endif
 
 Summary:  A python module for system storage configuration
 Name: python-blivet
 Url: https://storageapis.wordpress.com/projects/blivet
-Version: 3.1.1
+Version: 3.1.5
 
 #%%global prerelease .b2
 # prerelease, if defined, should be something like .a1, .b1, .b2.dev1, or .c2
 Release: 1%{?prerelease}%{?dist}
 Epoch: 1
 License: LGPLv2+
-Group: System Environment/Libraries
 %global realname blivet
 %global realversion %{version}%{?prerelease}
 Source0: http://github.com/storaged-project/blivet/archive/%{realname}-%{realversion}.tar.gz
-Patch0: 0001-force-lvm-plugin.patch
+Source1: http://github.com/storaged-project/blivet/archive/%{realname}-%{realversion}-tests.tar.gz
+Patch0: 0001-initial-PowerNV-class-support.patch
 
 # Versions of required components (done so we make sure the buildrequires
 # match the requires versions of things).
@@ -143,7 +158,8 @@ configuration.
 %endif
 
 %prep
-%autosetup -n %{realname}-%{realversion} -p1
+%autosetup -n %{realname}-%{realversion} -N
+%autosetup -n %{realname}-%{realversion} -b1 -p1
 
 %build
 %{?with_python2:make PYTHON=%{__python2}}
@@ -176,6 +192,120 @@ configuration.
 %endif
 
 %changelog
+* Thu Aug 15 2019 Vojtech Trefny <vtrefny@redhat.com> - 3.1.5-1
+- Move dependencies code from StorageDevice to Device (vtrefny)
+- Always use luks_data.min_entropy as a default minimum entropy (vponcova)
+- Add 'protected' property setter to LVMVolumeGroupDevice (#1729363) (vtrefny)
+- fix of LV max size calculation (japokorn)
+- Added min size for partitions (japokorn)
+- Improved non-unique UUID handling (japokorn)
+- Check if disklabel supports partition names (#1723228) (vtrefny)
+- format_device: Revert destroy action if create fails (#1727589) (vtrefny)
+- Do not allow resizing of LUKS devices with integrity (vtrefny)
+- Return underlying block device as 'slave' for LUKS with integrity (vtrefny)
+- Fix removing LUKS devices with integrity (vtrefny)
+- Check status before activating dmraid set in populate. (#1723979) (dlehman)
+- Use DBus call to see if we're in a vm. (dlehman)
+- Use dasd disklabel for vm disks backed by dasds. (dlehman)
+- Add a function to detect if running in a vm. (dlehman)
+- Remove teardown_all from the populate method (vponcova)
+- Correctly handle non-unicode iSCSI initiator names (vtrefny)
+- Add, test and use a new method to get size with reserve (vpodzime)
+- Beware non-positive sizes in thpool metadata size calculations (vpodzime)
+- Log sizes in MiB in thpool auto metadata size calculations (vpodzime)
+- Recalculate thpool's metadata size on resize in LVMThinPFactory (vpodzime)
+- Move the thpool reserve calculations to LVMFactory (vpodzime)
+
+* Fri Jul 26 2019 Fedora Release Engineering <releng@fedoraproject.org> - 1:3.1.4-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
+* Thu Jul 11 2019 Vojtech Trefny <vtrefny@redhat.com> - 3.1.4-2
+- Remove teardown_all from the populate method (vponcova)
+- initial PowerNV class support (dan)
+
+* Tue Jun 11 2019 Vojtech Trefny <vtrefny@redhat.com> - 3.1.4-1
+- Don't call fnmatch with None (#1698937) (vponcova)
+- Do not crash on non-int lun argument when creating iscsi disk object. (rvykydal)
+- Make iscsi device attribute modifications backward compatible. (rvykydal)
+- Do not store iscsi module nodeinfo in device object. (rvykydal)
+- Only call mpath plugin when it is available. (#1697378) (dlehman)
+- Include tests archive where appropriate in make targets. (dlehman)
+- Add spec file logic to include unit tests in SRPM. (dlehman)
+- Add a target to create an archive of the unit tests. (dlehman)
+- Remove profanity from an old comment. (dlehman)
+- Fix mounting of the filesystem iso9660 (vponcova)
+- Remove unnecessary pass statements (vtrefny)
+- Check for format tools availability in action_test (vtrefny)
+- Skip weak dependencies test if we don't have all libblockdev plugins (vtrefny)
+- Properly clean after availability test case (vtrefny)
+- Ensure correct type of mpath cache member list. (dlehman)
+- Do not crash if 'dm.get_member_raid_sets' fails (#1684851) (vtrefny)
+- Fix supported disklabels in 'test_platform_label_types' on EFI (vtrefny)
+- Support legacy MBR (msdos) as part of UEFI to enable hybrid builds (pbrobinson)
+- Automatically adjust size of growable devices for new format (vtrefny)
+- spec: Remove obsolete Group tag and bump min libblockdev version (vtrefny)
+
+* Thu Mar 21 2019 Vojtech Trefny <vtrefny@redhat.com> - 3.1.3-3
+- Ensure correct type of mpath cache member list
+
+* Mon Mar 11 2019 Vojtech Trefny <vtrefny@redhat.com> - 3.1.3-2
+- Support legacy MBR (msdos) as part of UEFI to enable hybrid builds (pbrobinson)
+
+* Wed Feb 27 2019 Vojtech Trefny <vtrefny@redhat.com> - 3.1.3-1
+- Don't crash if blockdev mpath plugin isn't available. (#1672971) (dlehman)
+- iscsi: Add default value to unused 'storage' argument in 'write' (vtrefny)
+- Add exported property to LVMVolumeGroupDevice (vtrefny)
+- Add VG data to static_data (vtrefny)
+- Do not try to get format free space for non-existing formats (vtrefny)
+- Do not raise exception if can't get PV free space (vtrefny)
+- Fix undefined attribute in LVM info cache (vtrefny)
+- Use raw_device to get thinpool device in LVMThinPFactory (#1490174) (vtrefny)
+- Do not crash if DM RAID activation fails (#1661712) (vtrefny)
+- Remove the unused sysroot property (vponcova)
+- Remove unused attributes from the Blivet class (vponcova)
+- Remove the unused gpt flag (vponcova)
+- Copy the iSCSI initiator name file to the installed system (vtrefny)
+- Use udev to determine if disk is a multipath member. (dlehman)
+- Require libfc instead of fcoe for offloaded FCoE. (#1575953) (dlehman)
+
+* Sat Feb 02 2019 Fedora Release Engineering <releng@fedoraproject.org> - 1:3.1.2-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
+
+* Wed Dec 12 2018 Vojtech Trefny <vtrefny@redhat.com> - 3.1.2-1
+- Fix reading LV attributes in LVMVolumeGroupDevice.status (vtrefny)
+- Do not try to login to iBFTs with active session (vtrefny)
+- Fix xfs sync of chrooted mountpoint. (dlehman)
+- Only update sysfs path in ctor for active devices. (dlehman)
+- Fix new pep8/pycodestyle warnings (vtrefny)
+- Ignore PEP8 W504 warning ("line break after binary operator") (vtrefny)
+- pylint: Allow loading all C extensions (vtrefny)
+- Use 'pycodestyle' instead of 'pep8' (vtrefny)
+- Fix failing populator test without nvdimm plugin (vtrefny)
+- Add 'srpm' and 'rpm' targets to Makefile for building (S)RPMs (vtrefny)
+- Fix crash on reset on systems without nvdimm plugin (vtrefny)
+- Use the size info of internal LVs when getting space usage for existing LVs (v.podzimek)
+- Calculate the number of RAID PVs from the origin for cached LVs (v.podzimek)
+- Make raid_level a property of an LV object (v.podzimek)
+- Add a test for DeviceTree.get_related_disks. (dlehman)
+- Fix ixgbe/bnx2fc fcoe disk detection (#1651506) (rvykydal)
+- Use RAID name for partitions on an MD array (vtrefny)
+- Move btrfs name validation to devicelibs (vtrefny)
+- Don't try to set selinux context for nodev or vfat file systems. (dlehman)
+- Only try to set selinux context for lost+found on ext file systems. (dlehman)
+- Wipe all stale metadata after creating md array. (#1639682) (dlehman)
+- Don't try to update sysfs path for non-block devices. (#1579375) (dlehman)
+- Don't raise errors without messages (vponcova)
+- Install ndctl when NVDIMMs are used. (dlehman)
+- Deactivate incomplete VGs along with everything else. (dlehman)
+- Work around udev timing issues. (dlehman)
+- Fix options for ISCSI functions (#1632656) (vtrefny)
+- Use format.status when checking for PV status (vtrefny)
+- Remove Anaconda flags (vponcova)
+- Remove square brackets when matching internal LVs (v.podzimek)
+
+* Mon Oct 08 2018 Vojtech Trefny <vtrefny@redhat.com> - 3.1.1-2
+- Fix options for ISCSI functions (#1632656) (vtrefny)
+
 * Wed Sep 26 2018 Vojtech Trefny <vtrefny@redhat.com> - 3.1.1-1
 - Check device dependencies only for device actions (vtrefny)
 - Allow removing btrfs volumes without btrfs support (vtrefny)
